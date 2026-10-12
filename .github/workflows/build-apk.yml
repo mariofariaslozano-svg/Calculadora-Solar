@@ -24,12 +24,19 @@ jobs:
           npx cap add android
       - name: Poner icono
         run: |
-          if [ -f icon.png ]; then
-            mkdir -p assets
-            cp icon.png assets/icon-only.png
-            npm install @capacitor/assets
-            npx capacitor-assets generate --android
-          fi
+          test -f icon.png || (echo "NO ENCUENTRO icon.png" && exit 1)
+          command -v convert >/dev/null || sudo apt-get install -y imagemagick
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          rm -f $RES/mipmap-*/ic_launcher*
+          for pair in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            d=${pair%%:*}; s=${pair##*:}
+            mkdir -p $RES/mipmap-$d
+            for n in ic_launcher ic_launcher_round; do
+              convert icon.png -resize "${s}x${s}^" -gravity center -extent "${s}x${s}" $RES/mipmap-$d/$n.png
+            done
+          done
+          ls -l $RES/mipmap-xxxhdpi
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
