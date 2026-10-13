@@ -36,7 +36,43 @@ jobs:
               convert icon.png -resize "${s}x${s}^" -gravity center -extent "${s}x${s}" $RES/mipmap-$d/$n.png
             done
           done
-          ls -l $RES/mipmap-xxxhdpi
+      - name: Habilitar imprimir y guardar PDF
+        run: |
+          MA=$(find android/app/src/main/java -name MainActivity.java)
+          PKG=$(grep -m1 '^package' "$MA")
+          cat > "$MA" <<EOF
+          $PKG
+
+          import android.os.Bundle;
+          import android.print.PrintAttributes;
+          import android.print.PrintDocumentAdapter;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebView;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            public class PrintBridge {
+              @JavascriptInterface
+              public void print(final String title) {
+                runOnUiThread(new Runnable() {
+                  public void run() {
+                    WebView wv = getBridge().getWebView();
+                    PrintManager pm = (PrintManager) getSystemService(PRINT_SERVICE);
+                    PrintDocumentAdapter adapter = wv.createPrintDocumentAdapter(title);
+                    pm.print(title, adapter, new PrintAttributes.Builder().build());
+                  }
+                });
+              }
+            }
+
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+              getBridge().getWebView().addJavascriptInterface(new PrintBridge(), "AndroidPrint");
+            }
+          }
+          EOF
       - run: npx cap sync android
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
