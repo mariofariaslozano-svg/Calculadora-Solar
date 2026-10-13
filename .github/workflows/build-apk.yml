@@ -20,7 +20,7 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/filesystem @capacitor/share
-          npx cap init "Calculadora Solar MF" com.mfconsultoria.calculadora --web-dir=www
+          npx cap init "Paneles" com.mfconsultoria.paneles --web-dir=www
           npx cap add android
       - name: Poner icono
         run: |
